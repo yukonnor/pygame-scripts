@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xlink="http://www.w3.org/1999/xlink" baseProfile="full" fill="none" height="500" version="1.1" viewBox="0 0 500 500" width="500">
+  <defs/>
+  <g>
+    <rect fill="blue" height="100" width="100" x="0" y="0"/>
+    <rect fill="green" height="100" width="100" x="0" y="400"/>
+    <rect fill="red" height="100" width="100" x="400" y="0"/>
+    <rect fill="yellow" height="100" width="100" x="400" y="400"/>
+    <line stroke="black" stroke-width="10" x1="100" x2="400" y1="5" y2="5"/>
+    <line stroke="black" stroke-width="10" x1="495" x2="495" y1="100" y2="400"/>
+    <line stroke="black" stroke-width="10" x1="400" x2="100" y1="495" y2="495"/>
+    <line stroke="black" stroke-width="10" x1="5" x2="5" y1="100" y2="400"/>
+    <line stroke="black" stroke-width="2" x1="100" x2="400" y1="100" y2="400"/>
+    <line stroke="black" stroke-width="2" x1="400" x2="100" y1="100" y2="400"/>
+    <circle cx="250.0" cy="250.0" fill="red" r="20"/>
+    <circle cx="250.0" cy="250.0" fill="black" r="3"/>
+  </g>
+</svg>
