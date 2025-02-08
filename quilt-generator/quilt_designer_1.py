@@ -28,10 +28,11 @@ XRES = 800
 YRES = 800 
 
 # block constants
-COLUMNS = 8
+COLUMNS = 8  
 ROWS = COLUMNS
-PIECE_WIDTH = 48 # TODO make scale
+PIECE_WIDTH = XRES/(2 * COLUMNS) # TODO make scale (in order to do this you need to redo how you draw the piece options)
 PIECE_COUNT = ROWS * COLUMNS
+OPTIONS_PIECE_WIDTH = 50
 GRID_OFFSET_X = (XRES - (PIECE_WIDTH * COLUMNS))/2
 GRID_OFFSET_Y = (YRES - (PIECE_WIDTH * ROWS))/2
 BLOCK_WIDTH = COLUMNS * PIECE_WIDTH
@@ -126,7 +127,7 @@ def create_color_options(dark_colors, light_colors):
     
     # for color in dark_colors:
     for i, color in enumerate(dark_colors):
-        x = (i * PIECE_WIDTH) + GRID_OFFSET_X
+        x = (i * OPTIONS_PIECE_WIDTH) + GRID_OFFSET_X
         y = GRID_OFFSET_Y + BLOCK_WIDTH + (YRES - (GRID_OFFSET_Y + BLOCK_WIDTH))/2  # halfway between bottom of block and bottom
         
         # create a color object with that color at a unique position
@@ -135,8 +136,8 @@ def create_color_options(dark_colors, light_colors):
         
     # for color in light_colors:
     for i, color in enumerate(light_colors):
-        x = (i * PIECE_WIDTH) + GRID_OFFSET_X
-        y = PIECE_WIDTH + GRID_OFFSET_Y + BLOCK_WIDTH + (YRES - (GRID_OFFSET_Y + BLOCK_WIDTH))/2  # One row below dark colors
+        x = (i * OPTIONS_PIECE_WIDTH) + GRID_OFFSET_X
+        y = OPTIONS_PIECE_WIDTH + GRID_OFFSET_Y + BLOCK_WIDTH + (YRES - (GRID_OFFSET_Y + BLOCK_WIDTH))/2  # One row below dark colors
         
         # create a color object with that color at a unique position
         new_color = Color(color, 1, (x,y))
@@ -446,25 +447,27 @@ while True:
         # if LEFT MOUSE button clicked, check if it collides with anything
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  
             pos = pygame.mouse.get_pos()
-            
+
             # check if cursor is on a color cell. if so update piece option colors.
             for color in colors:
                 if color.rect.collidepoint(pos):
                     update_colors(color, piece_options)
-                    
+
             # check if cursor is on a piece option cell. if so update the selected piece option.
             for piece in piece_options:
                 if piece.rect.collidepoint(pos):
                     selected_piece_option = piece
-                    
+
+
             # check if cursor is on a piece block piece. if so update the selected piece with the piece option.
             for r, row in enumerate(block):
                 for piece in block[r]:
-                    if piece.rect.collidepoint(pos):
+                    if piece and piece.rect.collidepoint(pos):
                         piece.type = selected_piece_option.type
                         piece.rotation = selected_piece_option.rotation
                         piece.dark_color = selected_piece_option.dark_color
                         piece.light_color = selected_piece_option.light_color
+            
                                
             
     if mode == 'design':
