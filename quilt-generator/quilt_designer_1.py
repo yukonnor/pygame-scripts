@@ -54,6 +54,7 @@ class Piece():
         self.width = width        # The default (large, detail view) width of the piece
         self.light_color = light_color   # default light color
         self.dark_color = dark_color     # default dark color
+
         self.rect = pygame.Rect(self.x, self.y, self.width, self.width)
         self.small_rect = pygame.Rect(self.x, self.y, self.width / 4, self.width / 4)
         
@@ -73,18 +74,20 @@ class Piece():
     
     def draw_piece(self, size):
         """Draws the piece based on the provided size """
+
+        # get x/y coords of the piece rect
         left, right, top, bottom, w, h = self.get_dimensions(size)
             
         # if full dark
-        if self.piece.type == 0:
-            pygame.draw.rect(screen, self.piece.dark_color, (left, top, w, h))
+        if self.type == 0:
+            pygame.draw.rect(screen, self.dark_color, (left, top, w, h))
         
         # if full light
-        elif self.piece.type == 1:
-            pygame.draw.rect(screen, self.piece.light_color, (left, top, w, h))
+        elif self.type == 1:
+            pygame.draw.rect(screen, self.light_color, (left, top, w, h))
         
         # if diagonal 
-        elif self.piece.type == 2:
+        elif self.type == 2:
         
             diagonal_patterns = {
                 "top_left": [(left, top), (right, top), (left, bottom)],  # |*/   
@@ -93,6 +96,12 @@ class Piece():
                 "bottom_left": [(left, top), (right, bottom), (left, bottom)],  # |*\
             }
 
+            # ROTATION:
+                # 0:  light / dark    ---> 
+                # 1:  dark \ light    ---> 
+                # 2:  dark / light    --->
+                # 3:  light \ dark    ---> 
+
             rotation_patterns = {
                 0: {"light": diagonal_patterns['top_left'], "dark": diagonal_patterns['bottom_right']},  # 0:  light / dark
                 1: {"light": diagonal_patterns['top_right'], "dark": diagonal_patterns['bottom_left']},  # 1:  dark \ light
@@ -100,10 +109,12 @@ class Piece():
                 3: {"light": diagonal_patterns['bottom_left'], "dark": diagonal_patterns['top_right']},  # 3:  light \ dark   
             }
 
-            light_tri, dark_tri = rotation_patterns[self.rotation]
+            # Translate piece rotation type to x,y coords. 
+            light_tri = rotation_patterns[self.rotation]["light"]
+            dark_tri = rotation_patterns[self.rotation]["dark"]
     
-            pygame.draw.polygon(screen, self.light_color, diagonal_patterns[light_tri])
-            pygame.draw.polygon(screen, self.dark_color, diagonal_patterns[dark_tri])
+            pygame.draw.polygon(screen, self.light_color, light_tri)
+            pygame.draw.polygon(screen, self.dark_color, dark_tri)
 
     
     def get_dict(self):
@@ -117,12 +128,14 @@ class Block():
     """
 
 
-    def __init__(self, rows = 8, cols = 8 , x = 0, y = 0, rotation = 0):
+    def __init__(self, rows = 8, cols = 8 , x = 0, y = 0, piece_width = 50, rotation = 0):
         self.rows = rows
         self.cols = cols
         self.x = x
         self.y = y
+        self.piece_width = piece_width
         self.rotation = rotation         # default rotation
+        self.mirror_type = 2             # TODO: remove hardcoding
         # self.rect = self.create_rect(pos)
         # self.small_rect = self.create_small_rect(pos)
 
@@ -141,20 +154,76 @@ class Block():
                 
         return pieces
     
+    def mirror_pieces(self):
+        """
+        Mirrors the pieces set in the top-left quadrant to the other quadrants
+        of the block based on the mirror type.
+        """
+        def _mirror_piece(src_r, src_c, dest_r, dest_c, rotation_adjustment):
+            """Helper function to mirror a piece to a new position with adjusted rotation."""
+            piece = self.pieces[src_r][src_c]
+            new_rotation = piece.rotation if self.mirror_type == 1 else rotation_adjustment[piece.rotation]
+
+
+            # Piece location is based on block location and what r,c it is in in the block
+            x = self.x + (dest_c * self.piece_width)
+            y = self.y + (dest_r * self.piece_width)
+            
+            print(f"Original Piece: r,c: {src_r, src_c} / x,y: {piece.x, piece.y} / type: {piece.type} / Rotation: {piece.rotation}")
+            print(f"Mirrored Piece: r,c: {dest_r, dest_c} / x,y: {x, y} / type: {piece.type} / Rotation: {new_rotation}")
+
+            self.pieces[dest_r][dest_c] = Piece(piece.type, new_rotation, x, y, self.piece_width)
+
+        # Define how each quadrant should mirror the top-left quadrant
+        quadrant_transforms = [
+            # ((new_row, new_col), rotation_map)
+            (lambda r, c: (r, self.cols - 1 - c), {0: 1, 1: 0, 2: 3, 3: 2}),  # Top-right
+            # (lambda r, c: (self.rows - 1 - r, c), {0: 3, 1: 2, 2: 1, 3: 0}),  # Bottom-left
+            # (lambda r, c: (self.rows - 1 - r, self.cols - 1 - c), {0: 2, 1: 3, 2: 0, 3: 1})  # Bottom-right
+        ]
+
+        for r in range(self.rows // 2):
+            for c in range(self.cols // 2):
+                for transform, rotation_map in quadrant_transforms:
+                    new_r, new_c = transform(r, c)
+                    _mirror_piece(r, c, new_r, new_c, rotation_map)
+                
+                # ROTATION:
+                # 0:  light / dark --> Right: 0->1, Down: 0->3, Downright: 0->2
+                # 1:  dark \ light --> Right: 1->0, down: 1->2, downright: 1->3
+                # 2:  dark / light --> right: 2->3, down: 2->1, Downright: 2->0
+                # 3:  light \ dark --> right: 3->2, Down: 3->0, downright: 3->1
+    
     def random_fill(self):
         """
         Fill the top left quadrant of the block with random pieces.
         The top left quadrant will then be mirrored to fill in the rest of the block.
         """
-        for r in range(int(self.rows/2)):
-            for c in range(int(self.cols/2)):
-                        
-                piece_type = random.choice((0,1,2))
-                rotation = random.choice((0,1,2,3)) # only matters if piece_type == 2
+        for r in range(self.rows // 2):
+            for c in range(self.cols // 2):
+                piece_type = random.choice((0, 1, 2))
+                rotation = 1 #random.choice((0, 1, 2, 3))  # Only matters if piece_type == 2
+
+                # Piece location is based on block location and r,c in block
+                x = self.x + (c * self.piece_width)
+                y = self.y + (r * self.piece_width)
+
+                self.pieces[r][c] = Piece(piece_type, rotation, x, y, self.piece_width)
+        
+        # fill the rest of the block via the mirroring method
+        self.mirror_pieces()
+
+
+    def update_mirror_type(self, new_mirror_type):
+        """
+        Updates the mirror type and redraws the block.
+        """
+
+        self.mirror_type = new_mirror_type
+        self.mirror_pieces()
+        self.draw_large_block()  # TODO: update based on design or quilt mode
+
                 
-                self.pieces[r][c] = Piece(piece_type, rotation)  
-                
-    
     def draw_large_block(self):
         for r in range(self.rows):
             for c in range(self.cols):
@@ -262,107 +331,6 @@ class Color():
 #             piece.dark_color = color_obj.color
 #         if color_obj.color_type == 1:
 #             piece.light_color = color_obj.color
-
-
-
-def mirror_pieces(block, mirror_type):
-    
-    # Get the pieces from the top left quarter (ROWS/2, COLS/2)
-    for r in range(int(ROWS/2)):
-        for c in range(int(COLUMNS/2)):
-        
-            # fill top right quadrant:
-            # add copies of top left to top right
-            new_col = COLUMNS - 1 - c
-            new_row = r
-            type = block[r][c].type
-            light_col = block[r][c].light_color
-            dark_col = block[r][c].dark_color
-            
-            if mirror_type == 1:
-                # positional mirror, no rotation mirroring
-                rotation = block[r][c].rotation
-            elif mirror_type == 2:
-                # positional mirroring and rotation mirroring
-                if block[r][c].rotation == 0 or block[r][c].rotation == 2:
-                    rotation = block[r][c].rotation + 1
-                else:
-                    rotation = block[r][c].rotation - 1
-                       
-            block[new_row][new_col] = Piece(type, (new_row, new_col), rotation, light_col, dark_col)
-            #print(f"Right quad row {r}, col {COLUMNS - 1 - c} = {block[r][c].type} at position ({x},{y})")
-            
-            # fill bottom left quadrant:
-            new_col = c
-            new_row = ROWS - 1 - r
-            type = block[r][c].type
-            light_col = block[r][c].light_color
-            dark_col = block[r][c].dark_color
-            
-            if mirror_type == 1:
-                # positional mirror, no rotation mirroring
-                rotation = block[r][c].rotation
-            elif mirror_type == 2:
-                # positional mirroring and rotation mirroring
-                if block[r][c].rotation == 0:
-                    rotation = 3
-                elif block[r][c].rotation == 3:
-                    rotation = 0
-                elif block[r][c].rotation == 1:
-                    rotation = 2
-                else:
-                    rotation = 1
-                       
-            block[new_row][new_col] = Piece(type, (new_row, new_col), rotation, light_col, dark_col)
-            
-            
-            # fill bottom right quadrant:
-            new_col = COLUMNS - 1 - c
-            new_row = ROWS - 1 - r
-            type = block[r][c].type
-            light_col = block[r][c].light_color
-            dark_col = block[r][c].dark_color
-            
-            if mirror_type == 1:
-                # positional mirror, no rotation mirroring
-                rotation = block[r][c].rotation
-            elif mirror_type == 2:
-                # positional mirroring and rotation mirroring
-                if block[r][c].rotation == 0 or block[r][c].rotation == 1:
-                    rotation = block[r][c].rotation + 2
-                else:
-                    rotation = block[r][c].rotation - 2
-                       
-            block[new_row][new_col] = Piece(type, (new_row, new_col), rotation, light_col, dark_col)
-            
-            # [0],[0] should be mirrored to:
-            # - [0],[7]: right 
-            # - [7],[0]: dowm
-            # - [7],[7]: downright
-            
-            # [0],[3] should be mirrored to:
-            # - [0],[4]: right
-            # - [7],[3]: down
-            # - [7],[4]: downright
-            
-            # [3],[0] should be mirrored to:
-            # - [3],[7]:  right
-            # - [4],[0]: down
-            # - [4],[7]: downright
-            
-            # [3],[3] should be mirrored to:
-            # - [3],[4]:  right
-            # - [4],[3]: down
-            # - [4],[4]: downright
-            
-            
-            # ROTATION:
-            # 0:  light / dark --> Right: 0->1, Down: 0->3, Downright: 0->2
-            # 1:  dark \ light --> Right: 1->0, down: 1->2, downright: 1->3
-            # 2:  dark / light --> right: 2->3, down: 2->1, Downright: 2->0
-            # 3:  light \ dark --> right: 3->2, Down: 3->0, downright: 3->1
-    
-    return block
     
 
 
@@ -444,8 +412,7 @@ while True:
                 pass         
             if event.key == pygame.K_RETURN:
                 # random generate top right quarter of block
-                block = random_fill(block)
-                block = mirror_pieces(block, mirror_type)
+                block.random_fill()
             if event.key == pygame.K_r:
                 # rotate pieces to select from
                 # rotate_piece_options(piece_options)
