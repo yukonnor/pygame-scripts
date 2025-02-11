@@ -46,7 +46,7 @@ screen = pygame.display.set_mode((XRES,YRES))
 ###############################################################################     
 
 class Piece():
-    def __init__(self, type, rotation = 0, x = 0, y = 0, width = 50, light_color = CREAM, dark_color = NAVY):
+    def __init__(self, type, rotation = 0, x = 0, y = 0, width = 50, light_color = CREAM, dark_color = RED):
         self.type = type          # 0,1,2 for full_dark, full_light or diag
         self.rotation = rotation         # default rotation
         self.x = x                # x placement (top left corner of rect)
@@ -127,7 +127,6 @@ class Block():
     A Block is a collection of square pieces arranged in a square (count rows = count columns).    
     """
 
-
     def __init__(self, rows = 8, cols = 8 , x = 0, y = 0, piece_width = 50, rotation = 0):
         self.rows = rows
         self.cols = cols
@@ -143,7 +142,6 @@ class Block():
         self.width = self.cols * PIECE_WIDTH  # TBD change later 
         self.height = self.rows * PIECE_WIDTH # TBD change later
     
-   
     def init_block(self):
          # create an empty 2D list to store pieces:
         pieces = []
@@ -169,8 +167,8 @@ class Block():
             x = self.x + (dest_c * self.piece_width)
             y = self.y + (dest_r * self.piece_width)
             
-            print(f"Original Piece: r,c: {src_r, src_c} / x,y: {piece.x, piece.y} / type: {piece.type} / Rotation: {piece.rotation}")
-            print(f"Mirrored Piece: r,c: {dest_r, dest_c} / x,y: {x, y} / type: {piece.type} / Rotation: {new_rotation}")
+            # print(f"Original Piece: r,c: {src_r, src_c} / x,y: {piece.x, piece.y} / type: {piece.type} / Rotation: {piece.rotation}")
+            # print(f"Mirrored Piece: r,c: {dest_r, dest_c} / x,y: {x, y} / type: {piece.type} / Rotation: {new_rotation}")
 
             self.pieces[dest_r][dest_c] = Piece(piece.type, new_rotation, x, y, self.piece_width)
 
@@ -178,8 +176,8 @@ class Block():
         quadrant_transforms = [
             # ((new_row, new_col), rotation_map)
             (lambda r, c: (r, self.cols - 1 - c), {0: 1, 1: 0, 2: 3, 3: 2}),  # Top-right
-            # (lambda r, c: (self.rows - 1 - r, c), {0: 3, 1: 2, 2: 1, 3: 0}),  # Bottom-left
-            # (lambda r, c: (self.rows - 1 - r, self.cols - 1 - c), {0: 2, 1: 3, 2: 0, 3: 1})  # Bottom-right
+            (lambda r, c: (self.rows - 1 - r, c), {0: 3, 1: 2, 2: 1, 3: 0}),  # Bottom-left
+            (lambda r, c: (self.rows - 1 - r, self.cols - 1 - c), {0: 2, 1: 3, 2: 0, 3: 1})  # Bottom-right
         ]
 
         for r in range(self.rows // 2):
@@ -213,7 +211,6 @@ class Block():
         # fill the rest of the block via the mirroring method
         self.mirror_pieces()
 
-
     def update_mirror_type(self, new_mirror_type):
         """
         Updates the mirror type and redraws the block.
@@ -222,32 +219,82 @@ class Block():
         self.mirror_type = new_mirror_type
         self.mirror_pieces()
         self.draw_large_block()  # TODO: update based on design or quilt mode
-
-                
+        
     def draw_large_block(self):
         for r in range(self.rows):
             for c in range(self.cols):
                 if self.pieces[r][c] is None:
-                    # Draw an outlined placeholder piece
-                    # TODO: maybe have a 'placeholder' Piece type instead and move this logic to the Piece class.
-                    x = (c * PIECE_WIDTH) + GRID_OFFSET_X
-                    y = (r * PIECE_WIDTH) + GRID_OFFSET_Y
-                    pygame.draw.rect(screen, DARK_GRAY, (x, y, PIECE_WIDTH, PIECE_WIDTH), 1)
+                    # If piece doesn't exist, draw an outlined placeholder piece
+                    x = (c * self.piece_width) + self.x
+                    y = (r * self.piece_width) + self.y
+                    pygame.draw.rect(screen, DARK_GRAY, (x, y, self.piece_width, self.piece_width), 1)
                 else:
                     self.pieces[r][c].draw_piece('regular')
 
-    def draw_quilt_block(self): 
+    def draw_quilt_block(self, q_block_width): 
         for r in range(self.rows):
             for c in range(self.cols):
                 if self.pieces[r][c] is None:
+
+                    # A piece's width should be block_width / num of block columns
                     # Draw an outlined placeholder piece
-                    # TODO: maybe have a 'placeholder' Piece type instead and move this logic to the Piece class.
-                    x = (c * PIECE_WIDTH / 4) + GRID_OFFSET_X
-                    y = (r * PIECE_WIDTH / 4) + GRID_OFFSET_Y
-                    pygame.draw.rect(screen, DARK_GRAY, (x, y, PIECE_WIDTH, PIECE_WIDTH), 1)
+                    x = self.x + (c * q_block_width / self.cols) 
+                    y = self.y + (r * q_block_width / self.rows)
+                    pygame.draw.rect(screen, DARK_GRAY, (x, y, q_block_width / self.cols, q_block_width / self.rows), 1)
                 else:
                     self.pieces[r][c].draw_piece('small')
         
+class Quilt:
+    def __init__(self, rows = 5, cols = 4, x = 200, y = 150, block_width = 100 ):
+        self.rows = rows
+        self.cols = cols
+        self.x = x
+        self.y = y
+        self.block_width = block_width
+        self.blocks = self.init_quilt()
+        pass
+
+    def init_quilt(self):
+        """Create an empty 2D list to store blocks"""
+        blocks = []
+        for r in range(self.rows):
+            blocks.append([])
+            for c in range(self.cols):
+                blocks[r].append(None)
+                
+        return blocks
+    
+    def fill_quilt(self, block):
+        """Fill the quilt with a provided block"""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                self.blocks[r][c] = block
+
+                # set the x,y postion of the quilt block based on quilt block position
+                # TODO
+                self.blocks[r][c].x = self.x + (c * self.block_width)
+                self.blocks[r][c].y = self.y + (r * self.block_width)
+
+    def draw_quilt(self):        
+        """
+        Draw all of the blocks of the quilt (or placeholder blocks if blocks not present).
+        """ 
+        # print("DRAWING QUILT")
+        # print(f"Quilt rows,cols: {self.rows, self.cols} | block_width: {self.block_width} | total_width: {self.rows * self.block_width}")
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.blocks[r][c] is None:
+                    # draw a placeholder block if block doesn't exist
+                    x = (c * self.block_width) + self.x
+                    y = (r * self.block_width) + self.y
+                    pygame.draw.rect(screen, DARK_GRAY, (x, y, self.block_width, self.block_width), 1)
+                else:
+                    # draw the block
+                    x = (c * self.block_width) + self.x
+                    y = (r * self.block_width) + self.y
+                    self.blocks[r][c].draw_quilt_block(self.block_width)
+
+
 
     
 class JSONEncoder(json.JSONEncoder):
@@ -338,24 +385,6 @@ class Color():
 #     for piece in piece_options:
 #         draw_piece(piece, (0,0), 'regular')
     
-  
-def draw_quilt(block):
-    
-    q_rows = 5
-    q_cols = 4
-    
-    sm_block_width = BLOCK_WIDTH / 4
-    
-    for r in range(q_rows):
-        for c in range(q_cols):
-            x = c * sm_block_width
-            y = r * sm_block_width
-            draw_block(block, (x,y), 'small')
-            
-            
-    
-    # draw a quilt, 4 blocks wide, 6 blocks tall
-    pass
               
 # def save_to_json(block, mirror_type):
 #     # save block to JSON
@@ -381,8 +410,11 @@ mode = 'design'
 mirror_type = 2
 selected_piece_option = None
 
-# the actual block that will hold piece objects
+# Instantiate the Block that will hold quilt Pieces
 block = Block()
+
+# Instantiate the Quilt that will hold quilt Blocks
+quilt = Quilt()
 
 # create dark & light color options
 # colors = create_color_options(DARK_COLORS, LIGHT_COLORS)
@@ -413,6 +445,7 @@ while True:
             if event.key == pygame.K_RETURN:
                 # random generate top right quarter of block
                 block.random_fill()
+                quilt.fill_quilt(block)
             if event.key == pygame.K_r:
                 # rotate pieces to select from
                 # rotate_piece_options(piece_options)
@@ -445,9 +478,7 @@ while True:
         #                 piece.type = selected_piece_option.type
         #                 piece.rotation = selected_piece_option.rotation
         #                 piece.dark_color = selected_piece_option.dark_color
-        #                 piece.light_color = selected_piece_option.light_color
-            
-                               
+        #                 piece.light_color = selected_piece_option.light_color                  
             
     if mode == 'design':
         # draw placeholder grid to fill   
@@ -461,12 +492,13 @@ while True:
 
         # if selected_piece_option:
         #     pygame.draw.rect(screen, RED, selected_piece_option.rect, 2)
-            
+        
+        block.x, block.y = 200, 200
         block.draw_large_block()
         
     if mode == 'quilt_preview':
         # draw_quilt
-        draw_quilt(block)
+        quilt.draw_quilt()
     
   
     
