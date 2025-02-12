@@ -47,16 +47,16 @@ screen = pygame.display.set_mode((XRES,YRES))
 
 class Piece():
     def __init__(self, type, rotation = 0, x = 0, y = 0, width = 50, light_color = CREAM, dark_color = RED):
-        self.type = type          # 0,1,2 for full_dark, full_light or diag
+        self.type = type                 # 0,1,2 for full_dark, full_light or diag
         self.rotation = rotation         # default rotation
-        self.x = x                # x placement (top left corner of rect)
-        self.y = y                # y placement (top left corner of rect)
-        self.width = width        # The default (large, detail view) width of the piece
+        self.x = x                       # x placement (top left corner of rect)
+        self.y = y                       # y placement (top left corner of rect)
+        self.width = width               # Width is determined based on parent structure.
         self.light_color = light_color   # default light color
         self.dark_color = dark_color     # default dark color
-
+        
         self.rect = pygame.Rect(self.x, self.y, self.width, self.width)
-        self.small_rect = pygame.Rect(self.x, self.y, self.width / 4, self.width / 4)
+        print(self.rect)
         
         # a piece's x,y position is based on its location in the block's 2D array. It depends on the block position.
         # a block's x,y position is based on its location in the quilt's 2D array. 
@@ -65,18 +65,15 @@ class Piece():
         # 0:  light / dark
         # 1:  dark \ light
         # 2:  dark / light
-        # 3:  light \ dark    
-
-    def get_dimensions(self, size):
-        """Returns the position and dimensions of the piece based on size."""
-        rect = self.rect if size == 'regular' else self.small_rect
-        return rect.left, rect.right, rect.top, rect.bottom, rect.width, rect.height  
+        # 3:  light \ dark           
     
     def draw_piece(self, size):
         """Draws the piece based on the provided size """
 
         # get x/y coords of the piece rect
-        left, right, top, bottom, w, h = self.get_dimensions(size)
+        rect = self.rect
+        left, right, top, bottom, w, h = rect.left, rect.right, rect.top, rect.bottom, rect.width, rect.height  
+
             
         # if full dark
         if self.type == 0:
@@ -127,13 +124,12 @@ class Block():
     A Block is a collection of square pieces arranged in a square (count rows = count columns).    
     """
 
-    def __init__(self, rows = 8, cols = 8 , x = 0, y = 0, piece_width = 50, rotation = 0):
+    def __init__(self, rows = 8, cols = 8 , x = 0, y = 0, piece_width = 50):
         self.rows = rows
         self.cols = cols
         self.x = x
         self.y = y
         self.piece_width = piece_width
-        self.rotation = rotation         # default rotation
         self.mirror_type = 2             # TODO: remove hardcoding
         # self.rect = self.create_rect(pos)
         # self.small_rect = self.create_small_rect(pos)
@@ -235,17 +231,16 @@ class Block():
         for r in range(self.rows):
             for c in range(self.cols):
                 if self.pieces[r][c] is None:
-
                     # A piece's width should be block_width / num of block columns
                     # Draw an outlined placeholder piece
-                    x = self.x + (c * q_block_width / self.cols) 
+                    x = self.x + (c * q_block_width / self.cols)  # (c * 125 / 8)
                     y = self.y + (r * q_block_width / self.rows)
                     pygame.draw.rect(screen, DARK_GRAY, (x, y, q_block_width / self.cols, q_block_width / self.rows), 1)
                 else:
                     self.pieces[r][c].draw_piece('small')
         
 class Quilt:
-    def __init__(self, rows = 5, cols = 4, x = 200, y = 150, block_width = 100 ):
+    def __init__(self, rows = 5, cols = 4, x = 150, y = 100, block_width = 125 ):
         self.rows = rows
         self.cols = cols
         self.x = x
@@ -268,12 +263,39 @@ class Quilt:
         """Fill the quilt with a provided block"""
         for r in range(self.rows):
             for c in range(self.cols):
-                self.blocks[r][c] = block
+                # Create a new block with adjusted x, y positions
+                new_block = Block(
+                    rows= block.rows,         
+                    cols=block.cols,
+                    x=self.x + (c * self.block_width),  
+                    y=self.y + (r * self.block_width), 
+                    piece_width=self.block_width / block.cols
+                    # TODO: Need any other properties?
+                )
 
-                # set the x,y postion of the quilt block based on quilt block position
-                # TODO
-                self.blocks[r][c].x = self.x + (c * self.block_width)
-                self.blocks[r][c].y = self.y + (r * self.block_width)
+                # Fill each block with copies of Pieces
+                new_block.init_block()
+
+                for block_r in range(new_block.rows):
+                    for block_c in range(new_block.cols):
+                        new_block.pieces[block_r][block_c] = Piece(
+                            type=block.pieces[block_r][block_c].type,
+                            rotation=block.pieces[block_r][block_c].rotation,
+                            x=new_block.x + (block_c * new_block.piece_width),
+                            y=new_block.y + (block_r * new_block.piece_width),
+                            width=new_block.piece_width,
+                            light_color=block.pieces[block_r][block_c].light_color,
+                            dark_color=block.pieces[block_r][block_c].light_color
+                        )
+
+                self.blocks[r][c] = new_block  
+
+        
+    def print_quilt_data(self):
+        for r in range(self.rows):
+            for c in range(self.cols):
+                print(f"Row {r} / Col {c}: Block X/Y: {self.blocks[r][c].x, self.blocks[r][c].y}")
+        
 
     def draw_quilt(self):        
         """
@@ -281,6 +303,7 @@ class Quilt:
         """ 
         # print("DRAWING QUILT")
         # print(f"Quilt rows,cols: {self.rows, self.cols} | block_width: {self.block_width} | total_width: {self.rows * self.block_width}")
+
         for r in range(self.rows):
             for c in range(self.cols):
                 if self.blocks[r][c] is None:
@@ -290,8 +313,6 @@ class Quilt:
                     pygame.draw.rect(screen, DARK_GRAY, (x, y, self.block_width, self.block_width), 1)
                 else:
                     # draw the block
-                    x = (c * self.block_width) + self.x
-                    y = (r * self.block_width) + self.y
                     self.blocks[r][c].draw_quilt_block(self.block_width)
 
 
@@ -422,6 +443,8 @@ quilt = Quilt()
 # create peice options
 # piece_options =  create_piece_options() 
 
+draw_once = True
+
 
 ########################################
 # Main Game Loop
@@ -445,7 +468,10 @@ while True:
             if event.key == pygame.K_RETURN:
                 # random generate top right quarter of block
                 block.random_fill()
-                quilt.fill_quilt(block)
+                
+        
+            if event.key == pygame.K_p:
+                quilt.print_quilt_data()
             if event.key == pygame.K_r:
                 # rotate pieces to select from
                 # rotate_piece_options(piece_options)
@@ -453,6 +479,7 @@ while True:
             if event.key == pygame.K_q:
                 if mode == 'design':
                     mode = 'quilt_preview'
+                    quilt.fill_quilt(block)
                 else:
                     mode = 'design'
         
@@ -498,7 +525,10 @@ while True:
         
     if mode == 'quilt_preview':
         # draw_quilt
+
+
         quilt.draw_quilt()
+
     
   
     
