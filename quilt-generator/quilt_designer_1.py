@@ -28,7 +28,8 @@ XRES = 800
 YRES = 800 
 
 # TBD
-PIECE_WIDTH = XRES/(2 * 8) # TODO make scale (in order to do this you need to redo how you draw the piece options)
+PIECE_WIDTH = 50 # TODO make scale 
+BLOCK_POS_OFFSET = 200
 QUILT_SCALE = 125 / 400  #  Size of quilt block / Size of design block
 OPTIONS_PIECE_WIDTH = 50
 GRID_OFFSET_X = (XRES - (PIECE_WIDTH * 8))/2
@@ -47,7 +48,7 @@ screen = pygame.display.set_mode((XRES,YRES))
 ###############################################################################     
 
 class Piece():
-    def __init__(self, type = 0, rotation = 0, block_coords = (0,0), block_pos = (0,0), width = 50, light_color = CREAM, dark_color = RED):
+    def __init__(self, type = 0, rotation = 0, block_coords = (0,0), block_pos = (0,0), width = PIECE_WIDTH, light_color = CREAM, dark_color = RED):
         self.type = type                 # 0,1,2,3 for placeholder, full_dark, full_light or diag
         self.rotation = rotation         # default rotation
         self.block_coords = block_coords # (x,y) coordinates of parent block
@@ -273,43 +274,43 @@ class Color():
     def __init__(self, color, color_type, pos):
         self.pos = pos  # (xres, yres)
         self.color = color
-        self.color_type = color_type # 0 for dark, 1 for light
+        self.color_type = color_type # 'dark' or 'light'
         self.rect = pygame.Rect(self.pos[0], self.pos[1], PIECE_WIDTH, PIECE_WIDTH)
 
 ###############################################################################
 ###############################################################################
 
 
-# def create_color_options(dark_colors, light_colors):
-#     # create color objects based on the colors provided
+def create_color_options(dark_colors, light_colors):
+    # create color objects based on the colors provided
     
-#     color_options = []
-#     color_options_block_location = (200,700)
+    color_options = []
+    color_options_block_location = (BLOCK_POS_OFFSET, YRES - (BLOCK_POS_OFFSET/2))
     
-#     # for color in dark_colors:
-#     for i, color in enumerate(dark_colors):
-#         x = (i * OPTIONS_PIECE_WIDTH) + GRID_OFFSET_X
-#         y = GRID_OFFSET_Y + BLOCK_WIDTH + (YRES - (GRID_OFFSET_Y + BLOCK_WIDTH))/2  # halfway between bottom of block and bottom
+    # for color in dark_colors:
+    for i, color in enumerate(dark_colors):
+        x = color_options_block_location[0] + (i * PIECE_WIDTH) 
+        y = color_options_block_location[1]
         
-#         # create a color object with that color at a unique position
-#         new_color = Color(color, 0, (x,y))
-#         color_options.append(new_color)
+        # create a color object with that color at a unique position
+        new_color = Color(color, 'dark', (x,y))
+        color_options.append(new_color)
         
-#     # for color in light_colors:
-#     for i, color in enumerate(light_colors):
-#         x = (i * OPTIONS_PIECE_WIDTH) + GRID_OFFSET_X
-#         y = OPTIONS_PIECE_WIDTH + GRID_OFFSET_Y + BLOCK_WIDTH + (YRES - (GRID_OFFSET_Y + BLOCK_WIDTH))/2  # One row below dark colors
+    # for color in light_colors:
+    for i, color in enumerate(light_colors):
+        x = color_options_block_location[0] + (i * PIECE_WIDTH) 
+        y = color_options_block_location[1] + PIECE_WIDTH       # one row below dark colors
         
-#         # create a color object with that color at a unique position
-#         new_color = Color(color, 1, (x,y))
-#         color_options.append(new_color)
+        # create a color object with that color at a unique position
+        new_color = Color(color, 'light', (x,y))
+        color_options.append(new_color)
         
-#     return color_options
+    return color_options
 
-# def draw_color_options(colors):
+def draw_color_options(color_options):
     
-#     for color in colors:
-#         pygame.draw.rect(screen, color.color, color.rect)
+    for color in color_options:
+        pygame.draw.rect(screen, color.color, color.rect)
 
 
         
@@ -318,7 +319,7 @@ def create_piece_options():
     num_piece_options = 6
     piece_options = []
 
-    piece_options_block_location = (700,200)
+    piece_options_block_location = (XRES - (BLOCK_POS_OFFSET/2), BLOCK_POS_OFFSET)
     
     for i in range(num_piece_options):
         # Create the two solid block types:
@@ -377,10 +378,13 @@ selected_piece_option = None
 
 # Instantiate the Block that will hold quilt Pieces
 block = Block()
-block.x, block.y = 200, 200
+block.x, block.y = BLOCK_POS_OFFSET, BLOCK_POS_OFFSET
 
-# create dark & light color options
-# colors = create_color_options(DARK_COLORS, LIGHT_COLORS)
+# Bool to show or hide the design tools (color options, piece options)
+show_design_tools = True
+
+# create color options
+color_options = create_color_options(DARK_COLORS, LIGHT_COLORS)
 
 # create peice options
 piece_options =  create_piece_options() 
@@ -425,10 +429,10 @@ while True:
             if event.key == pygame.K_4:
                 # allow all orientations when random filling
                 block.rand_rotation_options = [0,1,2,3]
-                
-        
-            if event.key == pygame.K_p:
-                pass
+                        
+            if event.key == pygame.K_d:
+                show_design_tools = not show_design_tools
+
             if event.key == pygame.K_q:
                 if mode == 'design':
                     mode = 'quilt_preview'
@@ -460,9 +464,13 @@ while True:
         #                 piece.light_color = selected_piece_option.light_color                  
             
     if mode == 'design':
-
+        # draw the main block
         block.draw_design_mode()
-        draw_piece_options(piece_options)
+
+        # draw the design options
+        if show_design_tools:
+            draw_piece_options(piece_options)
+            draw_color_options(color_options)
         
     if mode == 'quilt_preview':
 
