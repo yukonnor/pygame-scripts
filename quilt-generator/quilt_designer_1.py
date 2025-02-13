@@ -48,14 +48,14 @@ screen = pygame.display.set_mode((XRES,YRES))
 ###############################################################################     
 
 class Piece():
-    def __init__(self, type = 0, rotation = 0, block_coords = (0,0), block_pos = (0,0), width = PIECE_WIDTH, light_color = CREAM, dark_color = RED):
+    def __init__(self, type = 0, rotation = 0, block_coords = (0,0), block_pos = (0,0), width = PIECE_WIDTH, dark_color = RED, light_color = CREAM):
         self.type = type                 # 0,1,2,3 for placeholder, full_dark, full_light or diag
         self.rotation = rotation         # default rotation
         self.block_coords = block_coords # (x,y) coordinates of parent block
         self.block_pos = block_pos       # (r,c) position within paren block
         self.width = width               # Width is determined based on parent structure.
-        self.light_color = light_color   # default light color
         self.dark_color = dark_color     # default dark color
+        self.light_color = light_color   # default light color
 
         # Define the default rect:
         self.rect = self.create_rect()
@@ -189,12 +189,7 @@ class Block():
             piece = self.pieces[src_r][src_c]
             new_rotation = piece.rotation if self.mirror_type == 1 else rotation_adjustment[piece.rotation]
 
-
-            # # Piece location is based on block location and what r,c it is in in the block
-            # x = self.x + (dest_c * self.piece_width)
-            # y = self.y + (dest_r * self.piece_width)
-
-            self.pieces[dest_r][dest_c] = Piece(piece.type, new_rotation, (self.x, self.y), (dest_r, dest_c))
+            self.pieces[dest_r][dest_c] = Piece(piece.type, new_rotation, (self.x, self.y), (dest_r, dest_c), dark_color=piece.dark_color, light_color=piece.light_color)
 
         # Define how each quadrant should mirror the top-left quadrant
         quadrant_transforms = [
@@ -216,9 +211,9 @@ class Block():
                 # 2:  dark / light --> right: 2->3, down: 2->1, Downright: 2->0
                 # 3:  light \ dark --> right: 3->2, Down: 3->0, downright: 3->1
     
-    def random_fill(self):
+    def random_fill(self, dark_color, light_color):
         """
-        Fill the top left quadrant of the block with random pieces.
+        Fill the top left quadrant of the block with random pieces, based on current color settings of piece_option blocks
         The top left quadrant will then be mirrored to fill in the rest of the block.
         """
         for r in range(self.rows // 2):
@@ -226,7 +221,7 @@ class Block():
                 piece_type = random.choice((1, 2, 3))
                 rotation = random.choice(self.rand_rotation_options)  
 
-                self.pieces[r][c] = Piece(piece_type, rotation, (self.x, self.y), (r,c))
+                self.pieces[r][c] = Piece(piece_type, rotation, (self.x, self.y), (r,c), dark_color=dark_color, light_color=light_color)
         
         # fill the rest of the block via the mirroring method
         self.mirror_pieces()
@@ -338,12 +333,12 @@ def create_piece_options():
     return piece_options
 
             
-# def update_piece_option_colors(color_obj, piece_options):
-#     for piece in piece_options:
-#         if color_obj.color_type == 0:
-#             piece.dark_color = color_obj.color
-#         if color_obj.color_type == 1:
-#             piece.light_color = color_obj.color
+def update_piece_option_colors(color_obj, piece_options):
+    for piece in piece_options:
+        if color_obj.color_type == 'dark':
+            piece.dark_color = color_obj.color
+        if color_obj.color_type == 'light':
+            piece.light_color = color_obj.color
     
 
 
@@ -411,8 +406,10 @@ while True:
                 pass         
             if event.key == pygame.K_RETURN:
                 # random generate top right quarter of block
-                block.random_fill()
-                # quilt.fill_quilt(block)
+                dark_color = piece_options[0].dark_color
+                light_color = piece_options[0].light_color
+
+                block.random_fill(dark_color, light_color)
 
             if event.key == pygame.K_0:
                 # limit the rotation to the "0" orientation when random filling
@@ -440,28 +437,28 @@ while True:
                     mode = 'design'
         
         # if LEFT MOUSE button clicked, check if it collides with anything
-        # if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  
-        #     pos = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  
+            pos = pygame.mouse.get_pos()
 
-        #     # check if cursor is on a color cell. if so update piece option colors.
-        #     for color in colors:
-        #         if color.rect.collidepoint(pos):
-        #             update_colors(color, piece_options)
+            # check if cursor is on a color cell. if so update piece option colors.
+            for color in color_options:
+                if color.rect.collidepoint(pos):
+                    update_piece_option_colors(color, piece_options)
 
-        #     # check if cursor is on a piece option cell. if so update the selected piece option.
-        #     for piece in piece_options:
-        #         if rect.collidepoint(pos):
-        #             selected_piece_option = piece
+            # # check if cursor is on a piece option cell. if so update the selected piece option.
+            # for piece in piece_options:
+            #     if rect.collidepoint(pos):
+            #         selected_piece_option = piece
 
 
-        #     # check if cursor is on a piece block piece. if so update the selected piece with the piece option.
-        #     for r, row in enumerate(block):
-        #         for piece in block[r]:
-        #             if piece and rect.collidepoint(pos):
-        #                 piece.type = selected_piece_option.type
-        #                 piece.rotation = selected_piece_option.rotation
-        #                 piece.dark_color = selected_piece_option.dark_color
-        #                 piece.light_color = selected_piece_option.light_color                  
+            # # check if cursor is on a piece block piece. if so update the selected piece with the piece option.
+            # for r, row in enumerate(block):
+            #     for piece in block[r]:
+            #         if piece and rect.collidepoint(pos):
+            #             piece.type = selected_piece_option.type
+            #             piece.rotation = selected_piece_option.rotation
+            #             piece.dark_color = selected_piece_option.dark_color
+            #             piece.light_color = selected_piece_option.light_color                  
             
     if mode == 'design':
         # draw the main block
