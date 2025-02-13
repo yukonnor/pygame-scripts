@@ -48,19 +48,17 @@ screen = pygame.display.set_mode((XRES,YRES))
 
 class Piece():
     def __init__(self, type = 0, rotation = 0, block_coords = (0,0), block_pos = (0,0), width = 50, light_color = CREAM, dark_color = RED):
-        self.type = type                 # 0,1,2,4 for placeholder, full_dark, full_light or diag
+        self.type = type                 # 0,1,2,3 for placeholder, full_dark, full_light or diag
         self.rotation = rotation         # default rotation
-        # self.x = x                       # x placement (top left corner of rect)
-        # self.y = y                       # y placement (top left corner of rect)
         self.block_coords = block_coords # (x,y) coordinates of parent block
         self.block_pos = block_pos       # (r,c) position within paren block
         self.width = width               # Width is determined based on parent structure.
         self.light_color = light_color   # default light color
         self.dark_color = dark_color     # default dark color
 
-        # Define the rects:
+        # Define the default rect:
         self.rect = self.create_rect()
-        self.small_rect = self.create_small_rect()
+        # self.small_rect = self.create_small_rect()
         
         # a piece's x,y position is based on its location in the block's 2D array. It depends on the block position.
         # a block's x,y position is based on its location in the quilt's 2D array. 
@@ -77,23 +75,20 @@ class Piece():
         y = self.block_coords[1] + (self.block_pos[0] * self.width) 
         return pygame.Rect(x, y, self.width, self.width)
     
-    def create_small_rect(self):
-        """ 1/4 of regular size, for quilt mode """
-        x = self.block_coords[0] + (self.block_pos[1] * self.width * QUILT_SCALE) 
-        y = self.block_coords[1] + (self.block_pos[0] * self.width * QUILT_SCALE) 
-        return pygame.Rect(x, y, self.width * QUILT_SCALE, self.width * QUILT_SCALE)
+    # def create_small_rect(self):
+    #     """ 1/4 of regular size, for quilt mode """
+    #     x = self.block_coords[0] + (self.block_pos[1] * self.width * QUILT_SCALE) 
+    #     y = self.block_coords[1] + (self.block_pos[0] * self.width * QUILT_SCALE) 
+    #     return pygame.Rect(x, y, self.width * QUILT_SCALE, self.width * QUILT_SCALE)
     
-    def draw_at(self, x, y, draw_mode):
-        """Draw the piece at a specific temporary location."""
+    def draw(self, provided_rect = None):
+        """Draw the piece based on the provided rect"""
 
-        # Calculate the width based on the draw mode, ensuring integer values
-        size = round(self.width) if draw_mode == 'design' else round(self.width * QUILT_SCALE)
+        # If rect provided, use it. Otherwise use default rect.
+        rect = provided_rect if provided_rect else self.rect
 
-        # Create a temporary rectangle for drawing with rounded coordinates
-        temp_rect = pygame.Rect(round(x), round(y), size, size)
-
-        # Extract coordinates from the temp rectangle
-        left, right, top, bottom, w, h = temp_rect.left, temp_rect.right, temp_rect.top, temp_rect.bottom, temp_rect.width, temp_rect.height 
+        # Extract coordinates from the rectangle
+        left, right, top, bottom, w, h = rect.left, rect.right, rect.top, rect.bottom, rect.width, rect.height 
 
         # if placeholder
         if self.type == 0:
@@ -130,6 +125,18 @@ class Piece():
     
             pygame.draw.polygon(screen, self.light_color, light_tri)
             pygame.draw.polygon(screen, self.dark_color, dark_tri)
+    
+    def draw_at(self, x, y, draw_mode = 'design'):
+        """Draw the piece at a specific temporary location."""
+
+        # Calculate the width based on the draw mode, ensuring integer values
+        size = round(self.width) if draw_mode == 'design' else round(self.width * QUILT_SCALE)
+
+        # Create a temporary rectangle for drawing with rounded coordinates
+        temp_rect = pygame.Rect(round(x), round(y), size, size)
+
+        # Pass the temp_rect to the draw function
+        self.draw(temp_rect)
 
     
     def get_dict(self):
@@ -276,7 +283,8 @@ class Color():
 # def create_color_options(dark_colors, light_colors):
 #     # create color objects based on the colors provided
     
-#     colors = []
+#     color_options = []
+#     color_options_block_location = (200,700)
     
 #     # for color in dark_colors:
 #     for i, color in enumerate(dark_colors):
@@ -285,7 +293,7 @@ class Color():
         
 #         # create a color object with that color at a unique position
 #         new_color = Color(color, 0, (x,y))
-#         colors.append(new_color)
+#         color_options.append(new_color)
         
 #     # for color in light_colors:
 #     for i, color in enumerate(light_colors):
@@ -294,43 +302,42 @@ class Color():
         
 #         # create a color object with that color at a unique position
 #         new_color = Color(color, 1, (x,y))
-#         colors.append(new_color)
+#         color_options.append(new_color)
         
-#     return colors
+#     return color_options
 
 # def draw_color_options(colors):
     
 #     for color in colors:
 #         pygame.draw.rect(screen, color.color, color.rect)
-        
-# def create_piece_options():
-#     # create default piece objects 
-#     num_piece_options = 3
-#     piece_options = []
-    
-#     for i in range(num_piece_options):
 
-#         x = i  # fake row i (as we're specifying location based on the block now
-#         y = 10 # fake col 10
-        
-#         piece_type = i # 0, 1, 2 for dark, light, diagnoal
-        
-#         # create a piece object with that color at a unique position
-#         new_piece = Piece(piece_type, (x,y))
-#         print(new_rect.left)
-#         piece_options.append(new_piece)
-        
-#     return piece_options
 
-# def rotate_piece_options(piece_options):
+        
+def create_piece_options():
+    # create default piece objects 
+    num_piece_options = 6
+    piece_options = []
+
+    piece_options_block_location = (700,200)
     
-#     for piece in piece_options:
-#         if piece.rotation < 3:
-#             piece.rotation += 1
-#         else:
-#             piece.rotation = 0
+    for i in range(num_piece_options):
+        # Create the two solid block types:
+        if i < 2:
+            type = i + 1
+            rotation = 0
+            new_piece = Piece(type, rotation, piece_options_block_location, (i, 0))
+        # Create the four diagonal block types
+        else: 
+            type = 3
+            rotation = i - 2
+            new_piece = Piece(type, rotation, piece_options_block_location, (i, 0))
+
+        piece_options.append(new_piece)
+        
+    return piece_options
+
             
-# def update_colors(color_obj, piece_options):
+# def update_piece_option_colors(color_obj, piece_options):
 #     for piece in piece_options:
 #         if color_obj.color_type == 0:
 #             piece.dark_color = color_obj.color
@@ -339,9 +346,9 @@ class Color():
     
 
 
-# def draw_options(piece_options):
-#     for piece in piece_options:
-#         draw(piece, (0,0), 'regular')
+def draw_piece_options(piece_options):
+    for piece in piece_options:
+        piece.draw()
     
               
 # def save_to_json(block, mirror_type):
@@ -376,7 +383,7 @@ block.x, block.y = 200, 200
 # colors = create_color_options(DARK_COLORS, LIGHT_COLORS)
 
 # create peice options
-# piece_options =  create_piece_options() 
+piece_options =  create_piece_options() 
 
 
 ########################################
@@ -422,10 +429,6 @@ while True:
         
             if event.key == pygame.K_p:
                 pass
-            if event.key == pygame.K_r:
-                # rotate pieces to select from
-                # rotate_piece_options(piece_options)
-                pass
             if event.key == pygame.K_q:
                 if mode == 'design':
                     mode = 'quilt_preview'
@@ -459,6 +462,7 @@ while True:
     if mode == 'design':
 
         block.draw_design_mode()
+        draw_piece_options(piece_options)
         
     if mode == 'quilt_preview':
 
