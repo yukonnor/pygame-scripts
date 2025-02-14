@@ -1,3 +1,15 @@
 {
-    "python.defaultInterpreterPath": "/Users/connorschmidt/pygame-scripts/perlin_noise/venv/bin/python3"
+  "python.defaultInterpreterPath": "/Users/connorschmidt/pygame-scripts/perlin_noise/venv/bin/python3",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
