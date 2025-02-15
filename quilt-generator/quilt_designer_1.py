@@ -41,16 +41,27 @@ FONT_BIG = pygame.font.SysFont("retrogaming", 24)
 FONT_HUGE = pygame.font.SysFont("retrogaming", 48)
 
 DARK_COLORS = (
-    "#085FA5",
-    "#3E5F2E",
-    "#212221",
-    "#343330",
-    "#DC851F",
-    "#172A3A",
-    "#D63B26",
-    "#540B0E",
+    "#212221",  # black
+    "#343330",  # gray
+    "#172A3A",  # dark blue
+    "#085FA5",  # blue
+    "#3E5F2E",  # green
+    "#DC851F",  # gold
+    "#D63B26",  # red
+    "#540B0E",  # dark red
 )
-LIGHT_COLORS = ("#FFFBE3", "#FFF3B0", "#E09F3E", "#FFA737", "#74D63F", "#A0D8FF")
+LIGHT_COLORS = (
+    "#FFFBE3",  # off white
+    "#FFF3B0",  # cream
+    "#7b7d9d",  # light navy blue
+    "#A0D8FF",  # light blue
+    "#B1B93C",  # light green
+    "#FFA737",  # light gold
+    "#ff6795",  # pink
+    "#C66450",  # light red
+)
+
+# TODO: Update block colors keeping block shapes
 
 screen = pygame.display.set_mode((XRES, YRES))
 
@@ -307,6 +318,14 @@ class Block:
         # fill the rest of the block via the mirroring method
         self.mirror_pieces()
 
+    def invert_colors(self):
+        """Inverts the colors of the block pieces, keeping the same block design."""
+        for row in self.pieces:
+            for piece in row:
+                og_light_color = piece.light_color
+                piece.light_color = piece.dark_color
+                piece.dark_color = og_light_color
+
     def update_mirror_type(self, new_mirror_type):
         """
         Updates the mirror type and redraws the block.
@@ -501,6 +520,9 @@ while True:
                 light_color = piece_options[0].light_color
 
                 block.random_fill(dark_color, light_color)
+
+            if event.key == pygame.K_i:
+                block.invert_colors()
 
             if event.key == pygame.K_0:
                 # limit the rotation to the "0" orientation when random filling
