@@ -1,14 +1,9 @@
 """
-This sketch:
-
 TODO:
 - Add ability to load patterns
 - fill block with different colors
 - Different mirror types
-- Edit block
 - Weighted random for piece selection
-- CLEAN UP code
-
 """
 
 import pygame
@@ -16,6 +11,9 @@ from colors import *
 import random
 import time
 import json
+
+import pygame_widgets
+from pygame_widgets.button import Button
 
 pygame.init()
 DEBUG = True
@@ -326,6 +324,13 @@ class Block:
                 piece.light_color = piece.dark_color
                 piece.dark_color = og_light_color
 
+    def update_piece_colors(self, new_light_color, new_dark_color):
+        """Updates the colors of all of the pieces in the block."""
+        for row in self.pieces:
+            for piece in row:
+                piece.light_color = new_light_color
+                piece.dark_color = new_dark_color
+
     def update_mirror_type(self, new_mirror_type):
         """
         Updates the mirror type and redraws the block.
@@ -474,8 +479,29 @@ def draw_piece_options(piece_options):
 #     with open(f"quilt_block_{timestr}.json", "w") as write_file:
 #         json.dump(block_dict, write_file, indent=4)
 
+# Creates the button with optional parameters
+button = Button(
+    # Mandatory Parameters
+    screen,  # Surface to place button on
+    675,  # X-coordinate of top left corner
+    550,  # Y-coordinate of top left corner
+    100,  # Width
+    25,  # Height
+    # Optional Parameters
+    text="Sync Colors",
+    fontSize=14,  # Size of font
+    margin=8,  # Minimum distance between text/image and edge of button
+    inactiveColour=(200, 50, 0),  # Colour of button when not being interacted with
+    hoverColour=(150, 0, 0),  # Colour of button when being hovered over
+    pressedColour=(110, 0, 0),  # Colour of button when being clicked
+    radius=5,  # Radius of border corners (leave empty for not curved)
+    onClick=lambda: block.update_piece_colors(
+        piece_options[0].light_color, piece_options[0].dark_color
+    ),  # Function to call when clicked on
+)
+
 ########################################
-# GAME STARTUP
+# GAME SETUP
 ########################################
 mode = "design"
 mirror_type = 2
@@ -502,7 +528,8 @@ while True:
     screen.fill(BLACK)  # clear screen
 
     # events & quit
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
@@ -599,6 +626,8 @@ while True:
                 pygame.draw.rect(screen, YELLOW, selection_rect, 2)
 
             draw_color_options(color_options)
+
+            pygame_widgets.update(events)  # draw all UI elements
 
     if mode == "quilt_preview":
 
