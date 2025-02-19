@@ -259,6 +259,40 @@ class Block:
                     {0: 1, 1: 0, 2: 3, 3: 2},
                 ),
             ],
+            [
+                # Mirror Type 3 (horizontal mirror): ((new_row, new_col), rotation_map)
+                (
+                    lambda r, c: (r, c + self.cols // 2),  # Top-right (TL)
+                    {0: 0, 1: 1, 2: 2, 3: 3},
+                ),
+                (
+                    lambda r, c: (self.rows - 1 - r, c),  # Bottom-left
+                    {0: 3, 1: 2, 2: 1, 3: 0},
+                ),
+                (
+                    # Bottom-right (BL)
+                    lambda r, c: (
+                        self.rows - 1 - r,
+                        c + self.cols // 2,
+                    ),
+                    {0: 3, 1: 2, 2: 1, 3: 0},
+                ),
+            ],
+            [
+                # Mirror Type 4 (spiral): ((new_row, new_col), rotation_map)
+                (
+                    lambda r, c: (c, self.cols - 1 - r),  # Top-right
+                    {0: 1, 1: 2, 2: 3, 3: 0},
+                ),
+                (
+                    lambda r, c: (self.rows - 1 - c, r),  # Bottom-left  (TL)
+                    {0: 3, 1: 0, 2: 1, 3: 2},
+                ),
+                (
+                    lambda r, c: (self.rows - 1 - r, self.cols - 1 - c),  # Bottom-right
+                    {0: 2, 1: 3, 2: 0, 3: 1},
+                ),
+            ],
         ]
 
         for r in range(self.rows // 2):
@@ -274,6 +308,11 @@ class Block:
                 # 1:  dark \ light --> Right: 1->0, down: 1->2, downright: 1->3
                 # 2:  dark / light --> right: 2->3, down: 2->1, Downright: 2->0
                 # 3:  light \ dark --> right: 3->2, Down: 3->0, downright: 3->1
+
+                # 3 -> 2
+                # 2 --> 1
+                # 1 --> 0
+                # 0 --> 3
 
     def update_mirror_type(self, new_mirror_type):
         """
