@@ -166,7 +166,7 @@ class Block:
         self.x = x
         self.y = y
         self.piece_width = piece_width
-        self.mirror_type = 2  # TODO: remove hardcoding
+        self.mirror_type = 1  # TODO: remove hardcoding  # Available: 0, 1
 
         self.pieces = self.init_block()  # create an empty 2D array to store pieces
         self.rand_rotation_options = [0, 1, 2, 3]
@@ -194,11 +194,7 @@ class Block:
         def _mirror_piece(src_r, src_c, dest_r, dest_c, rotation_adjustment):
             """Helper function to mirror a piece to a new position with adjusted rotation."""
             piece = self.pieces[src_r][src_c]
-            new_rotation = (
-                piece.rotation
-                if self.mirror_type == 1
-                else rotation_adjustment[piece.rotation]
-            )
+            new_rotation = rotation_adjustment[piece.rotation]
 
             self.pieces[dest_r][dest_c] = Piece(
                 piece.type,
@@ -210,33 +206,62 @@ class Block:
             )
 
         # Define how each quadrant should mirror the top-left quadrant
-        quadrant_transforms = [
-            # ((new_row, new_col), rotation_map)
-            (
-                lambda r, c: (r, self.cols - 1 - c),
-                {0: 1, 1: 0, 2: 3, 3: 2},
-            ),  # Top-right
-            (
-                lambda r, c: (self.rows - 1 - r, c),
-                {0: 3, 1: 2, 2: 1, 3: 0},
-            ),  # Bottom-left
-            (
-                lambda r, c: (self.rows - 1 - r, self.cols - 1 - c),
-                {0: 2, 1: 3, 2: 0, 3: 1},
-            ),  # Bottom-right
+        mirror_type_transformations = [
+            [
+                # Mirror Type 0 (duplicate): ((new_row, new_col), rotation_map)
+                (
+                    lambda r, c: (r, c + self.cols // 2),  # Top-right
+                    {0: 0, 1: 1, 2: 2, 3: 3},
+                ),
+                (
+                    lambda r, c: (r + self.rows // 2, c),  # Bottom-left
+                    {0: 0, 1: 1, 2: 2, 3: 3},
+                ),
+                (
+                    lambda r, c: (
+                        r + self.rows // 2,
+                        c + self.cols // 2,
+                    ),  # Bottom-right
+                    {0: 0, 1: 1, 2: 2, 3: 3},
+                ),
+            ],
+            [
+                # Mirror Type 1 (classic mirror): ((new_row, new_col), rotation_map)
+                (
+                    lambda r, c: (r, self.cols - 1 - c),
+                    {0: 1, 1: 0, 2: 3, 3: 2},
+                ),  # Top-right
+                (
+                    lambda r, c: (self.rows - 1 - r, c),
+                    {0: 3, 1: 2, 2: 1, 3: 0},
+                ),  # Bottom-left
+                (
+                    lambda r, c: (self.rows - 1 - r, self.cols - 1 - c),
+                    {0: 2, 1: 3, 2: 0, 3: 1},
+                ),  # Bottom-right
+            ],
         ]
 
         for r in range(self.rows // 2):
             for c in range(self.cols // 2):
-                for transform, rotation_map in quadrant_transforms:
+                for transform, rotation_map in mirror_type_transformations[
+                    self.mirror_type
+                ]:
                     new_r, new_c = transform(r, c)
                     _mirror_piece(r, c, new_r, new_c, rotation_map)
 
-                # ROTATION:
+                # Mirror Type 1 ROTATION:
                 # 0:  light / dark --> Right: 0->1, Down: 0->3, Downright: 0->2
                 # 1:  dark \ light --> Right: 1->0, down: 1->2, downright: 1->3
                 # 2:  dark / light --> right: 2->3, down: 2->1, Downright: 2->0
                 # 3:  light \ dark --> right: 3->2, Down: 3->0, downright: 3->1
+
+    def update_mirror_type(self, new_mirror_type):
+        """
+        Updates the mirror type and redraws the block.
+        """
+        self.mirror_type = new_mirror_type
+        self.mirror_pieces()
 
     def random_fill(self, dark_color, light_color):
         """
@@ -274,12 +299,6 @@ class Block:
             for piece in row:
                 piece.light_color = new_light_color
                 piece.dark_color = new_dark_color
-
-    def update_mirror_type(self, new_mirror_type):
-        """
-        Updates the mirror type and redraws the block.
-        """
-        pass
 
     def draw_design_mode(self, screen):
         """Draw a large single block for editing."""

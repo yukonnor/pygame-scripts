@@ -1,9 +1,11 @@
 """
 TODO:
 - Add ability to load patterns
-- fill block with different colors
 - Different mirror types
-- Weighted random for piece selection
+- Different block -> quilt fill types
+- Multi-block quilt
+- Very pieces per block / blocks per quilt & scale accordingly
+- Multi-size pieces
 """
 
 import pygame
@@ -51,7 +53,6 @@ def create_color_options(dark_colors, light_colors):
 
     # for color in dark_colors:
     for i, color in enumerate(dark_colors):
-        print(color)
         x = color_options_block_location[0] + (i * PIECE_WIDTH)
         y = color_options_block_location[1]
 
@@ -201,6 +202,11 @@ while True:
             if event.key == pygame.K_4:
                 # allow all orientations when random filling
                 block.rand_rotation_options = [0, 1, 2, 3]
+
+            if event.key == pygame.K_z:
+                block.update_mirror_type(0)
+            if event.key == pygame.K_x:
+                block.update_mirror_type(1)
 
             if event.key == pygame.K_d:
                 show_design_tools = not show_design_tools
