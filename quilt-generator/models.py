@@ -166,7 +166,7 @@ class Block:
         self.x = x
         self.y = y
         self.piece_width = piece_width
-        self.mirror_type = 1  # TODO: remove hardcoding  # Available: 0, 1
+        self.mirror_type = 2  # Available: 0, 1
 
         self.pieces = self.init_block()  # create an empty 2D array to store pieces
         self.rand_rotation_options = [0, 1, 2, 3]
@@ -228,17 +228,36 @@ class Block:
             [
                 # Mirror Type 1 (classic mirror): ((new_row, new_col), rotation_map)
                 (
-                    lambda r, c: (r, self.cols - 1 - c),
+                    lambda r, c: (r, self.cols - 1 - c),  # Top-right
                     {0: 1, 1: 0, 2: 3, 3: 2},
-                ),  # Top-right
+                ),
                 (
-                    lambda r, c: (self.rows - 1 - r, c),
+                    lambda r, c: (self.rows - 1 - r, c),  # Bottom-left
                     {0: 3, 1: 2, 2: 1, 3: 0},
-                ),  # Bottom-left
+                ),
                 (
-                    lambda r, c: (self.rows - 1 - r, self.cols - 1 - c),
+                    lambda r, c: (self.rows - 1 - r, self.cols - 1 - c),  # Bottom-right
                     {0: 2, 1: 3, 2: 0, 3: 1},
-                ),  # Bottom-right
+                ),
+            ],
+            [
+                # Mirror Type 2 (vertical mirror): ((new_row, new_col), rotation_map)
+                (
+                    lambda r, c: (r, self.cols - 1 - c),  # Top-right
+                    {0: 1, 1: 0, 2: 3, 3: 2},
+                ),
+                (
+                    lambda r, c: (r + self.rows // 2, c),  # Bottom-left  (TL)
+                    {0: 0, 1: 1, 2: 2, 3: 3},
+                ),
+                (
+                    # Bottom-right (TR)
+                    lambda r, c: (
+                        r + self.rows // 2,
+                        self.cols - 1 - c,
+                    ),
+                    {0: 1, 1: 0, 2: 3, 3: 2},
+                ),
             ],
         ]
 

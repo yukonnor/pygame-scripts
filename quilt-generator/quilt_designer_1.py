@@ -207,6 +207,8 @@ while True:
                 block.update_mirror_type(0)
             if event.key == pygame.K_x:
                 block.update_mirror_type(1)
+            if event.key == pygame.K_c:
+                block.update_mirror_type(2)
 
             if event.key == pygame.K_d:
                 show_design_tools = not show_design_tools
